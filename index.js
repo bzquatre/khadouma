@@ -48,8 +48,6 @@ function changeCSS(cssFile, cssLinkIndex) {
             document.getElementById("content").style.display = "block";
             clearInterval(x);
             changeCSS('style1.css',0)
-            audio = new Audio('10.mp3');
-            audio.play();
           }
           
           //seconds
