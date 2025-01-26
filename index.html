@@ -33,670 +33,263 @@
         <li><span id="seconds"></span>Seconds</li>
       </ul>
     </div>
-    <div id="content" style="display: none;" ondblclick="change()">
-      <div id="happy">
-        <canvas id=c></canvas>
-        <style>
-          canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-          }
-
-          p {
-            margin: 0 0;
-            position: absolute;
-            font: 16px Verdana;
-            color: #eee;
-            height: 25px;
-            top: calc(100vh - 30px);
-            text-shadow: 0 0 2px white;
-          }
-
-          p a {
-            text-decoration: none;
-            color: #aaa;
-          }
-
-          span {
-            font-size: 11px;
-          }
-
-          p>a:first-of-type {
-            font-size: 20px;
-          }
-
-          body {
-            overflow: hidden;
-          }
-        </style>
-        <script>
-          var w = c.width = window.innerWidth,
-            h = c.height = window.innerHeight,
-            ctx = c.getContext('2d'),
-
-            hw = w / 2, // half-width
-            hh = h / 2,
-
-            opts = {
-              strings: ['HAPPY', 'BIRTHDAY!', 'My Wife'],
-              charSize: 30,
-              charSpacing: 35,
-              lineHeight: 40,
-
-              cx: w / 2,
-              cy: h / 2,
-
-              fireworkPrevPoints: 10,
-              fireworkBaseLineWidth: 5,
-              fireworkAddedLineWidth: 8,
-              fireworkSpawnTime: 200,
-              fireworkBaseReachTime: 30,
-              fireworkAddedReachTime: 30,
-              fireworkCircleBaseSize: 20,
-              fireworkCircleAddedSize: 10,
-              fireworkCircleBaseTime: 30,
-              fireworkCircleAddedTime: 30,
-              fireworkCircleFadeBaseTime: 10,
-              fireworkCircleFadeAddedTime: 5,
-              fireworkBaseShards: 5,
-              fireworkAddedShards: 5,
-              fireworkShardPrevPoints: 3,
-              fireworkShardBaseVel: 4,
-              fireworkShardAddedVel: 2,
-              fireworkShardBaseSize: 3,
-              fireworkShardAddedSize: 3,
-              gravity: .1,
-              upFlow: -.1,
-              letterContemplatingWaitTime: 360,
-              balloonSpawnTime: 20,
-              balloonBaseInflateTime: 10,
-              balloonAddedInflateTime: 10,
-              balloonBaseSize: 20,
-              balloonAddedSize: 20,
-              balloonBaseVel: .4,
-              balloonAddedVel: .4,
-              balloonBaseRadian: -(Math.PI / 2 - .5),
-              balloonAddedRadian: -1,
-            },
-            calc = {
-              totalWidth: opts.charSpacing * Math.max(opts.strings[0].length, opts.strings[1].length)
-            },
-
-            Tau = Math.PI * 2,
-            TauQuarter = Tau / 4,
-
-            letters = [];
-
-          ctx.font = opts.charSize + 'px Verdana';
-
-          function Letter(char, x, y) {
-            this.char = char;
-            this.x = x;
-            this.y = y;
-
-            this.dx = -ctx.measureText(char).width / 2;
-            this.dy = +opts.charSize / 2;
-
-            this.fireworkDy = this.y - hh;
-
-            var hue = x / calc.totalWidth * 360;
-
-            this.color = 'hsl(hue,80%,50%)'.replace('hue', hue);
-            this.lightAlphaColor = 'hsla(hue,80%,light%,alp)'.replace('hue', hue);
-            this.lightColor = 'hsl(hue,80%,light%)'.replace('hue', hue);
-            this.alphaColor = 'hsla(hue,80%,50%,alp)'.replace('hue', hue);
-
-            this.reset();
-          }
-          Letter.prototype.reset = function () {
-
-            this.phase = 'firework';
-            this.tick = 0;
-            this.spawned = false;
-            this.spawningTime = opts.fireworkSpawnTime * Math.random() | 0;
-            this.reachTime = opts.fireworkBaseReachTime + opts.fireworkAddedReachTime * Math.random() | 0;
-            this.lineWidth = opts.fireworkBaseLineWidth + opts.fireworkAddedLineWidth * Math.random();
-            this.prevPoints = [[0, hh, 0]];
-          }
-          Letter.prototype.step = function () {
-
-            if (this.phase === 'firework') {
-
-              if (!this.spawned) {
-
-                ++this.tick;
-                if (this.tick >= this.spawningTime) {
-
-                  this.tick = 0;
-                  this.spawned = true;
-                }
-
-              } else {
-
-                ++this.tick;
-
-                var linearProportion = this.tick / this.reachTime,
-                  armonicProportion = Math.sin(linearProportion * TauQuarter),
-
-                  x = linearProportion * this.x,
-                  y = hh + armonicProportion * this.fireworkDy;
-
-                if (this.prevPoints.length > opts.fireworkPrevPoints)
-                  this.prevPoints.shift();
-
-                this.prevPoints.push([x, y, linearProportion * this.lineWidth]);
-
-                var lineWidthProportion = 1 / (this.prevPoints.length - 1);
-
-                for (var i = 1; i < this.prevPoints.length; ++i) {
-
-                  var point = this.prevPoints[i],
-                    point2 = this.prevPoints[i - 1];
-
-                  ctx.strokeStyle = this.alphaColor.replace('alp', i / this.prevPoints.length);
-                  ctx.lineWidth = point[2] * lineWidthProportion * i;
-                  ctx.beginPath();
-                  ctx.moveTo(point[0], point[1]);
-                  ctx.lineTo(point2[0], point2[1]);
-                  ctx.stroke();
-
-                }
-
-                if (this.tick >= this.reachTime) {
-
-                  this.phase = 'contemplate';
-
-                  this.circleFinalSize = opts.fireworkCircleBaseSize + opts.fireworkCircleAddedSize * Math.random();
-                  this.circleCompleteTime = opts.fireworkCircleBaseTime + opts.fireworkCircleAddedTime * Math.random() | 0;
-                  this.circleCreating = true;
-                  this.circleFading = false;
-
-                  this.circleFadeTime = opts.fireworkCircleFadeBaseTime + opts.fireworkCircleFadeAddedTime * Math.random() | 0;
-                  this.tick = 0;
-                  this.tick2 = 0;
-
-                  this.shards = [];
-
-                  var shardCount = opts.fireworkBaseShards + opts.fireworkAddedShards * Math.random() | 0,
-                    angle = Tau / shardCount,
-                    cos = Math.cos(angle),
-                    sin = Math.sin(angle),
-
-                    x = 1,
-                    y = 0;
-
-                  for (var i = 0; i < shardCount; ++i) {
-                    var x1 = x;
-                    x = x * cos - y * sin;
-                    y = y * cos + x1 * sin;
-
-                    this.shards.push(new Shard(this.x, this.y, x, y, this.alphaColor));
-                  }
-                }
-
-              }
-            } else if (this.phase === 'contemplate') {
-
-              ++this.tick;
-
-              if (this.circleCreating) {
-
-                ++this.tick2;
-                var proportion = this.tick2 / this.circleCompleteTime,
-                  armonic = -Math.cos(proportion * Math.PI) / 2 + .5;
-
-                ctx.beginPath();
-                ctx.fillStyle = this.lightAlphaColor.replace('light', 50 + 50 * proportion).replace('alp', proportion);
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, armonic * this.circleFinalSize, 0, Tau);
-                ctx.fill();
-
-                if (this.tick2 > this.circleCompleteTime) {
-                  this.tick2 = 0;
-                  this.circleCreating = false;
-                  this.circleFading = true;
-                }
-              } else if (this.circleFading) {
-
-                ctx.fillStyle = this.lightColor.replace('light', 70);
-                ctx.fillText(this.char, this.x + this.dx, this.y + this.dy);
-
-                ++this.tick2;
-                var proportion = this.tick2 / this.circleFadeTime,
-                  armonic = -Math.cos(proportion * Math.PI) / 2 + .5;
-
-                ctx.beginPath();
-                ctx.fillStyle = this.lightAlphaColor.replace('light', 100).replace('alp', 1 - armonic);
-                ctx.arc(this.x, this.y, this.circleFinalSize, 0, Tau);
-                ctx.fill();
-
-                if (this.tick2 >= this.circleFadeTime)
-                  this.circleFading = false;
-
-              } else {
-
-                ctx.fillStyle = this.lightColor.replace('light', 70);
-                ctx.fillText(this.char, this.x + this.dx, this.y + this.dy);
-              }
-
-              for (var i = 0; i < this.shards.length; ++i) {
-
-                this.shards[i].step();
-
-                if (!this.shards[i].alive) {
-                  this.shards.splice(i, 1);
-                  --i;
-                }
-              }
-
-              if (this.tick > opts.letterContemplatingWaitTime) {
-
-                this.phase = 'balloon';
-
-                this.tick = 0;
-                this.spawning = true;
-                this.spawnTime = opts.balloonSpawnTime * Math.random() | 0;
-                this.inflating = false;
-                this.inflateTime = opts.balloonBaseInflateTime + opts.balloonAddedInflateTime * Math.random() | 0;
-                this.size = opts.balloonBaseSize + opts.balloonAddedSize * Math.random() | 0;
-
-                var rad = opts.balloonBaseRadian + opts.balloonAddedRadian * Math.random(),
-                  vel = opts.balloonBaseVel + opts.balloonAddedVel * Math.random();
-
-                this.vx = Math.cos(rad) * vel;
-                this.vy = Math.sin(rad) * vel;
-              }
-            } else if (this.phase === 'balloon') {
-
-              ctx.strokeStyle = this.lightColor.replace('light', 80);
-
-              if (this.spawning) {
-
-                ++this.tick;
-                ctx.fillStyle = this.lightColor.replace('light', 70);
-                ctx.fillText(this.char, this.x + this.dx, this.y + this.dy);
-
-                if (this.tick >= this.spawnTime) {
-                  this.tick = 0;
-                  this.spawning = false;
-                  this.inflating = true;
-                }
-              } else if (this.inflating) {
-
-                ++this.tick;
-
-                var proportion = this.tick / this.inflateTime,
-                  x = this.cx = this.x,
-                  y = this.cy = this.y - this.size * proportion;
-
-                ctx.fillStyle = this.alphaColor.replace('alp', proportion);
-                ctx.beginPath();
-                generateBalloonPath(x, y, this.size * proportion);
-                ctx.fill();
-
-                ctx.beginPath();
-                ctx.moveTo(x, y);
-                ctx.lineTo(x, this.y);
-                ctx.stroke();
-
-                ctx.fillStyle = this.lightColor.replace('light', 70);
-                ctx.fillText(this.char, this.x + this.dx, this.y + this.dy);
-
-                if (this.tick >= this.inflateTime) {
-                  this.tick = 0;
-                  this.inflating = false;
-                }
-
-              } else {
-
-                this.cx += this.vx;
-                this.cy += this.vy += opts.upFlow;
-
-                ctx.fillStyle = this.color;
-                ctx.beginPath();
-                generateBalloonPath(this.cx, this.cy, this.size);
-                ctx.fill();
-
-                ctx.beginPath();
-                ctx.moveTo(this.cx, this.cy);
-                ctx.lineTo(this.cx, this.cy + this.size);
-                ctx.stroke();
-
-                ctx.fillStyle = this.lightColor.replace('light', 70);
-                ctx.fillText(this.char, this.cx + this.dx, this.cy + this.dy + this.size);
-
-                if (this.cy + this.size < -hh || this.cx < -hw || this.cy > hw)
-                  this.phase = 'done';
-
-              }
-            }
-          }
-          function Shard(x, y, vx, vy, color) {
-
-            var vel = opts.fireworkShardBaseVel + opts.fireworkShardAddedVel * Math.random();
-
-            this.vx = vx * vel;
-            this.vy = vy * vel;
-
-            this.x = x;
-            this.y = y;
-
-            this.prevPoints = [[x, y]];
-            this.color = color;
-
-            this.alive = true;
-
-            this.size = opts.fireworkShardBaseSize + opts.fireworkShardAddedSize * Math.random();
-          }
-          Shard.prototype.step = function () {
-
-            this.x += this.vx;
-            this.y += this.vy += opts.gravity;
-
-            if (this.prevPoints.length > opts.fireworkShardPrevPoints)
-              this.prevPoints.shift();
-
-            this.prevPoints.push([this.x, this.y]);
-
-            var lineWidthProportion = this.size / this.prevPoints.length;
-
-            for (var k = 0; k < this.prevPoints.length - 1; ++k) {
-
-              var point = this.prevPoints[k],
-                point2 = this.prevPoints[k + 1];
-
-              ctx.strokeStyle = this.color.replace('alp', k / this.prevPoints.length);
-              ctx.lineWidth = k * lineWidthProportion;
-              ctx.beginPath();
-              ctx.moveTo(point[0], point[1]);
-              ctx.lineTo(point2[0], point2[1]);
-              ctx.stroke();
-
-            }
-
-            if (this.prevPoints[0][1] > hh)
-              this.alive = false;
-          }
-          function generateBalloonPath(x, y, size) {
-
-            ctx.moveTo(x, y);
-            ctx.bezierCurveTo(x - size / 2, y - size / 2,
-              x - size / 4, y - size,
-              x, y - size);
-            ctx.bezierCurveTo(x + size / 4, y - size,
-              x + size / 2, y - size / 2,
-              x, y);
-          }
-
-          function anim() {
-
-            window.requestAnimationFrame(anim);
-
-            ctx.fillStyle = '#111';
-            ctx.fillRect(0, 0, w, h);
-
-            ctx.translate(hw, hh);
-
-            var done = true;
-            for (var l = 0; l < letters.length; ++l) {
-
-              letters[l].step();
-              if (letters[l].phase !== 'done')
-                done = false;
-            }
-
-            ctx.translate(-hw, -hh);
-
-            if (done)
-              for (var l = 0; l < letters.length; ++l)
-                letters[l].reset();
-          }
-
-          for (var i = 0; i < opts.strings.length; ++i) {
-            for (var j = 0; j < opts.strings[i].length; ++j) {
-              letters.push(new Letter(opts.strings[i][j],
-                j * opts.charSpacing + opts.charSpacing / 2 - opts.strings[i].length * opts.charSize / 2,
-                i * opts.lineHeight + opts.lineHeight / 2 - opts.strings.length * opts.lineHeight / 2));
-            }
-          }
-
-          anim();
-
-          window.addEventListener('resize', function () {
-
-            w = c.width = window.innerWidth;
-            h = c.height = window.innerHeight;
-
-            hw = w / 2;
-            hh = h / 2;
-
-            ctx.font = opts.charSize + 'px Verdana';
-          })
-        </script>
-      </div>
-      <div id="questions" style="display: none;">
-
-
-
-
-
-        <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/gh/linuxguist/faqa@main/styles.css">
-
-        <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/gh/linuxguist/faqa@main/stylesheet.css">
-
-        <style type="text/css">
-          .faq {
-            text-align: center;
-            justify-content: center;
-            padding: 20px;
-            width: 80%;
-          }
-
-          .faq-icon {
-            height: 18px;
-            width: 18px;
-            margin-top: 3px;
-          }
-
-          .accordion {
-            background-color: khaki;
-            color: #282A35;
-            cursor: pointer;
-            padding: 18px;
-            width: 100%;
-            text-align: left;
-            border: none;
-            border-radius: 10px;
-            outline: none;
-            transition: 0.4s;
-          }
-
-          .active,
-          .accordion:hover {
-            background-color: yellow;
-            color: #282A35;
-          }
-
-          .active {
-            border-radius: 10px 10px 0px 0px;
-          }
-
-          .details-description {
-            font-size: 22px;
-            margin-top: 20px
-          }
-
-          .panel {
-            padding: 0 10px;
-            padding-left: 40px;
-            padding-right: 40px;
-            background-color: #f3ecea;
-            margin-top: -28px;
-            color: #282A35;
-            display: none;
-            overflow: hidden;
-            border-radius: 0px 0px 10px 10px;
-            text-align: left;
-          }
-
-          .panel,
-          .accordion {
-            margin-bottom: 2rem;
-          }
-
-          button.accordion {
-            font-weight: bold;
-            font-size: 16px;
-          }
-
-          .paragraphs {
-            margin-top: 10px;
-            margin-bottom: 10px;
-            white-space: pre-wrap;
-          }
-
-          .header {
-            font-size: 40px;
-            font-weight: 600;
-            font-family: 'Verdana', sans-serif;
-            color: #b393d3;
-            text-transform: uppercase;
-            text-shadow: 1px 1px 0px #957dad,
-              1px 2px 0px #957dad,
-              1px 3px 0px #957dad,
-              1px 4px 0px #957dad,
-              1px 5px 0px #957dad,
-              1px 6px 0px #957dad,
-              1px 10px 5px rgba(16, 16, 16, 0.5),
-              1px 15px 10px rgba(16, 16, 16, 0.4),
-              1px 20px 30px rgba(16, 16, 16, 0.3),
-              1px 25px 50px rgba(16, 16, 16, 0.2);
-          }
-        </style>
-
-        <div class="w3-center ws-black w3-animate-zoom" style="margin-top: -1px; direction: rtl;">
-          <div class="w3-center w3-content">
-            <div class="faq w3-center w3-content" style="padding-top: 55px;">
-              <h2 class="header" style="color: #b393d3;"><b>happy birthday my love</b></h2><br>
-              <button class="accordion" style="display: flex; flex-direction: row;"><img class="faq-icon"
-                  src="https://cdn.jsdelivr.net/gh/linuxguist/faqa@main/chevron-down.svg"> &nbsp; &nbsp; <b
-                  style="padding-top: 2px;">هل تحبني</b></button>
-              <div class="panel" style="display: none;">
-                <div class="paragraphs" id="myDiv_id1"></div>
-                <p id="paragraph_id1" style="display: none;">شغفي بك لا ينتهي، أجدك في روحي وكأن لا شيء في داخلي سواك
-                </p>
-              </div>
-              <button class="accordion" style="display: flex; flex-direction: row;"><img class="faq-icon"
-                  src="https://cdn.jsdelivr.net/gh/linuxguist/faqa@main/chevron-down.svg"> &nbsp; &nbsp; <b
-                  style="padding-top: 2px;">كم مرة اتبادر إلى ذهنك في اليوم؟</b></button>
-              <div class="panel" style="display: none;">
-                <div class="paragraphs" id="myDiv_id2"></div>
-                <p id="paragraph_id2" style="display: none;">مرة واحدة عندما أستيقظ ولا تغادرين عقلي حتى أنام
-                </p>
-              </div>
-              <button class="accordion" style="display: flex; flex-direction: row;"><img class="faq-icon"
-                  src="https://cdn.jsdelivr.net/gh/linuxguist/faqa@main/chevron-down.svg"> &nbsp; &nbsp; <b
-                  style="padding-top: 2px;">لماذا تحبني</b></button>
-              <div class="panel" style="display: none;">
-                <div class="paragraphs" id="myDiv_id3"></div>
-                <p id="paragraph_id3" style="display: none;">لا اعلم , كيف يصف الاخرس مشاعره لشخص اعمى
-
-                </p>
-              </div>
-
-            </div>
-            <button class="accordion" style="display: flex; flex-direction: row;"><img class="faq-icon"
-                src="https://cdn.jsdelivr.net/gh/linuxguist/faqa@main/chevron-down.svg"> &nbsp; &nbsp; <b
-                style="padding-top: 2px;">رسالة</b></button>
-            <div class="panel" style="display: none;">
-              <div class="paragraphs" id="myDiv_id5"></div>
-              <p id="paragraph_id5" style="display: none;">حبيبتي
-                وانا اكتب لك هذه الكلمات ادركت لماذا يقولون الحب أعمى،لان المُحبّون لا يرون الحماقة التي يقترفونها , في
-                بعض الاحيان احس نفسي شاعرا ليس لجمال كلماتي ولكن لسحرك و بإشراقاتِ ابتسامتك وجمال ثغرالكثيرة في وجهك
-                ولمعانُ عينيكِ .
-                ذكريني في كل عيد ميلاد ان اهديك باقة من زهور وردة زرقاء تقول انك صديقتي و وردة حمراء تقول لك أنني أحبك،
-                ووردة صفراء تقول أنني أغار عليك و وردة بيضاء تشرح السلام الذي تنشرينه في قلبي .
-              </p>
-            </div>
+    <div id="content" style="display: none;" >
+      <main>
+        <div class="playground">
+          <div class="page page--1">
+            <img src="images/images 1.png" alt="">
+            <img src="images/page 1.png" alt="">
           </div>
-          <h4 class="undertitle" style="color: #FFFFFF;"> I hope it will be the happiest year for you </h4>
+          <div class="page page--2">
+            <img src="images/Group 1-2.png" alt="">
+            <img src="images/page 2.png" alt="">
+          </div>
+          <div class="page page--3">
+            <img src="images/Group 2-2.png" alt="">
+            <img src="images/page 3.png" alt="">
+          </div>
+          <div class="page page--4">
+            <img src="images/Group 3-2.png" alt="">
+            <img src="images/page 4.png" alt="">
+          </div>
+          <div class="page page--5">
+            <img src="images/Group 4-2.png" alt="">
+            <img src="images/page 5.png" alt="">
+          </div>
+          <div class="page page--6">
+            <img src="images/Group 5-2.png" alt="">
+            <img src="images/page 6.png" alt="">
+          </div>
+          <div class="page page--7">
+            <img src="images/Group 6-2.png" alt="">
+            <img src="images/page 7.png" alt="">
+          </div>
+          <div class="page page--8">
+            <img src="images/Group 7-2.png" alt="">
+            <img src="images/page 8.png" alt="">
+          </div>
+          <div class="page page--9">
+            <img src="images/Group 8-2.png" alt="">
+            <img src="images/page 9.png" alt="">
+          </div>
+          <div class="page page--10">
+            <img src="images/Group 9-2.png" alt="">
+            <img src="images/images 2.png" alt="">
+          </div>
         </div>
-        <script>
-          var acc = document.getElementsByClassName("accordion");
-          var i;
-          for (i = 0; i < acc.length; i++) {
-            acc[i].addEventListener("click", function () {
-              this.classList.toggle("active");
-              var panel = this.nextElementSibling;
-              if (panel.style.display === "block") {
-                panel.style.display = "none";
-                // clearBox('myDiv_id1')
-              } else {
-                panel.style.display = "block";
-                let firstElementChild = panel.children[0].id;
-                let secondElementChild = panel.children[1].id;
-                // console.log(firstElementChild);
-                // console.log(secondElementChild);
-                printStringByLetter(secondElementChild, firstElementChild);
-              }
-            });
-          }
-          var images = document.querySelectorAll(".faq-icon");
-          images.forEach(function (image) {
-            image.addEventListener("click", changeImage);
-          });
+      </main>
+      <style>
 
-          function changeImage() {
-            if (this.src.match("chevron-down")) {
-              this.src = "https://cdn.jsdelivr.net/gh/linuxguist/faqa@main/chevron-up.svg";
-            } else {
-              this.src = "https://cdn.jsdelivr.net/gh/linuxguist/faqa@main/chevron-down.svg";
-            }
-          }
-        </script>
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    padding: 0;
+    margin: 0;
+}
 
-        <script type="text/javascript">
+body {
+    background: #080808;
+    height: 100vh;
+}
 
-          function printStringByLetter(paragraph_id, myDiv_id) {
-            var myDiv = document.getElementById(myDiv_id);
-            var text = document.getElementById(paragraph_id).innerHTML;
-            // myDiv.innerHTML = "";
-            document.getElementById(myDiv_id).innerHTML = "";
-            // console.log(text.length);
-            var index = 0;
-            var intervalId = setInterval(function () {
-              myDiv.innerHTML += text.charAt(index);
-              index++;
-              // console.log(index);
-              if (index == text.length) {
-                clearInterval(intervalId);
-                index = 0;
-                text = "";
-              }
-            }, 50);
-          }
 
-          function clearBox(elementID) {
-            document.getElementById(elementID).innerHTML = "";
-          }
+main {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+}
 
-        </script>
+.playground {
+    position: relative;
+    display: flex;
+    width: 1000px;
+    height: 500px;
+    perspective: 2000px;
+}
 
-      </div>
+.page {
+    position: absolute;
+    right: 0;
+    height: 100%;
+    aspect-ratio: 1/1;
+    transform-origin: left;
+    transition: 10s transform ease-out;
+    transform-style: preserve-3d;
+}
+
+.page img {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    inset: 0;
+    backface-visibility: hidden;
+    font-weight: bolder;
+}
+
+.page img:first-child {
+    border-radius: 0 5% 5% 0;
+}
+
+.page img:nth-child(2) {
+    transform: rotateY(-180deg);
+    border-radius: 5% 0 0 5%;
+}
+
+.page.page--1 {
+    z-index: 100;
+    animation: turningPage1 1s ease-in forwards;
+    animation-delay: 2s;
+}
+.page.page--2 {
+    z-index: 99;
+    animation: turningPage2 1s ease-in forwards;
+    animation-delay: 10s;
+}
+.page.page--3 {
+    z-index: 98;
+    animation: turningPage3 1s ease-in forwards;
+    animation-delay: 20s;
+}
+.page.page--4 {
+    z-index: 97;
+    animation: turningPage4 1s ease-in forwards;
+    animation-delay: 30s;
+}
+.page.page--5 {
+    z-index: 96;
+    animation: turningPage5 1s ease-in forwards;
+    animation-delay: 40s;
+}
+.page.page--6 {
+    z-index: 95;
+    animation: turningPage6 1s ease-in forwards;
+    animation-delay: 50s;
+}
+.page.page--7 {
+    z-index: 94;
+    animation: turningPage7 1s ease-in forwards;
+    animation-delay: 60s;
+}
+.page.page--8 {
+    z-index: 93;
+    animation: turningPage8 1s ease-in forwards;
+    animation-delay: 70s;
+}
+.page.page--9 {
+    z-index: 92;
+    animation: turningPage9 1s ease-in forwards;
+    animation-delay: 80s;
+}
+.page.page--10 {
+    z-index: 91;
+    animation: turningPage10 1s ease-in forwards;
+    animation-delay: 90s;
+}
+
+
+@keyframes turningPage1 {
+    0% {
+        z-index: 101;
+    }
+    100% {
+        transform: rotateY(-180deg);
+        z-index: 101;
+    }
+}
+
+@keyframes turningPage2 {
+    0% {
+        z-index: 102;
+    }
+    100% {
+        transform: rotateY(-180deg);
+        z-index: 102;
+    }
+}
+
+@keyframes turningPage3 {
+    0% {
+        z-index: 103;
+    }
+    100% {
+        transform: rotateY(-180deg);
+        z-index: 103;
+    }
+}
+@keyframes turningPage4 {
+    0% {
+        z-index: 104;
+    }
+    100% {
+        transform: rotateY(-180deg);
+        z-index: 104;
+    }
+}
+
+@keyframes turningPage5 {
+    0% {
+        z-index: 105;
+    }
+    100% {
+        transform: rotateY(-180deg);
+        z-index: 105;
+    }
+}
+
+@keyframes turningPage6 {
+    0% {
+        z-index: 106;
+    }
+    100% {
+        transform: rotateY(-180deg);
+        z-index: 106;
+    }
+}
+@keyframes turningPage7 {
+    0% {
+        z-index: 107;
+    }
+    100% {
+        transform: rotateY(-180deg);
+        z-index: 107;
+    }
+}
+@keyframes turningPage8 {
+    0% {
+        z-index: 108;
+    }
+    100% {
+        transform: rotateY(-180deg);
+        z-index: 108;
+    }
+}
+@keyframes turningPage9 {
+    0% {
+        z-index: 109;
+    }
+    100% {
+        transform: rotateY(-180deg);
+        z-index: 109;
+    }
+}
+@keyframes turningPage10 {
+    0% {
+        z-index: 110;
+    }
+    100% {
+        transform: rotateY(-180deg);
+        z-index: 110;
+    }
+}
+      </style>
     </div>
   </div>
 
 
   </div>
   </div>
-  <script>
-    function change(){
-      document.getElementById("happy").style.display = "none";
-      document.getElementById("questions").style.display = "block";
-
-    }
-  </script>
   <script type="text/javascript" src="index.js"></script>
 
 
